@@ -1,0 +1,235 @@
+---
+title: "p8105_hw3_yw3774"
+author: "Yida Wang"
+date: "10/16/2021"
+output: github_document
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(p8105.datasets)
+
+knitr::opts_chunk$set(
+  fig.width = 8,
+  fig.asp = 1,
+  out.width = "100%"  
+)
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+## Problem 1
+Load dataset instacart
+```{r}
+data("instacart")
+```
+* description of instacart
+There are `r nrow(instacart)` observations and `r ncol(instacart)` variables in this dataset. Each row represents an order of the product and the variables are `r colnames(instacart)`. It has `r length(unique(instacart$department))` departments and `r length(unique(instacart$aisle))` aisles in total.
+
+### Aisle that sold most items
+```{r}
+aisle_freq = instacart %>% 
+  group_by(aisle) %>% 
+  summarize(
+    n_obs = n()
+  )
+most_aisle = aisle_freq %>%
+  slice_max(n_obs)
+most_aisle %>%
+knitr::kable()
+```
+There are `r length(unique(instacart$aisle))` aisles and the most items are ordered from `r pull(most_aisle, aisle)`, which sold `r pull(most_aisle, n_obs)` products.
+
+### Plot number of product sold in each aisle.
+```{r}
+aisle_freq %>% 
+  filter(n_obs > 10000) %>% 
+  arrange(n_obs) %>% 
+  mutate(aisle = forcats::fct_inorder(aisle)) %>% 
+  ggplot(aes(x = aisle, y = n_obs)) +
+  geom_col(alpha = 0.7) +
+  labs(
+    title = "Number of Items Ordered from Each Aisle",
+    x = "Aisles",
+    y = "Number of Items Ordered") +
+  theme(
+    plot.title = element_text(size = 17, hjust = 0.5),
+    axis.title.x = element_text(size = 13, hjust = 0.5),
+    axis.title.y = element_text(size = 13, vjust = 0.5),
+    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90))
+```
+### Most 3 popular items in "baking ingredients", "dog food care" and "packaged vegetables fruits" aisles.
+```{r}
+instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+  group_by(aisle, product_name) %>% 
+  summarize(
+    n_obs = n()
+  ) %>%
+  mutate(order_rank = min_rank(desc(n_obs))) %>% 
+  filter(order_rank < 4) %>% 
+  arrange(aisle, order_rank) %>% 
+  knitr::kable()
+```
+### Find the mean hour of the day of Pink Lady Apples and Coffee Ice Cream being sold
+```{r}
+instacart %>% 
+  filter(product_name == "Pink Lady Apples" | product_name == "Coffee Ice Cream") %>% 
+  group_by(product_name, order_dow) %>%
+  summarise(mean_hour = round(mean(order_hour_of_day, na.rm = T), 2)) %>% 
+  mutate(order_dow = as.character(order_dow), 
+         order_dow = replace(order_dow, order_dow == c("0", "1", "2", "3", "4", "5", "6"), 
+                             c("Sun", "Mon", "Tues", "Wed", "Thur", "Fri", "Sat"))) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = order_dow, 
+              values_from = mean_hour) %>% 
+  knitr::kable()
+```
+
+## Problem 2
+load the dataset
+```{r}
+data("brfss_smart2010")
+```
+### Data cleaning
+```{r}
+brfss_clean = brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  rename(state = locationabbr, location_descrip = locationdesc, resp_id = respid) %>% 
+  filter(topic == "Overall Health", 
+    response %in% c("Excellent", "Very good", "Good", "Fair", "Poor")) %>%
+  mutate(response = factor(response), 
+         response = fct_relevel(response, c("Poor", "Fair", "Good", "Very good", "Excellent"))) %>% 
+  arrange(response)
+```
+### States were observed at 7 or more locations in 2002 and 2010
+```{r}
+states_2002 = brfss_clean %>% 
+  filter(year == 2002) %>% 
+  select(year, state, location_descrip) %>% 
+  distinct() %>% 
+  group_by(year, state) %>% 
+  summarise(n_obs = n()) %>% 
+  filter(n_obs >= 7) %>% 
+  knitr::kable()
+
+states_2010 = brfss_clean %>% 
+  filter(year == 2010) %>% 
+  select(year, state, location_descrip) %>% 
+  distinct() %>% 
+  group_by(year, state) %>% 
+  summarise(n_loc = n()) %>% 
+  filter(n_loc >= 7) %>% 
+  knitr::kable()
+
+states_2002
+states_2010
+```
+According to the code, there are 6 states were observed at 7 or more locations in 2002 which are **Connecticut, Florida, Massachusetts, North Carolina, New Jersey, and Pennsylvania**., while **14** states were observed at 7 or more locations in 2010 and they show in the table.
+
+### Spaghetti plot of average data values across years within states
+```{r}
+brfss_clean %>% 
+  filter(response == "Excellent") %>% 
+  select(year, state, data_value) %>% 
+  group_by(year, state) %>% 
+  summarize(mean_data = mean(data_value, na.rm = TRUE)) %>%
+  ggplot(aes(x = year, y = mean_data, group = state, color = state)) +
+  geom_line() +
+  labs(
+    title = "Spaghetti Plot for Average Data Value for Each State Over Years",
+    y = "Mean data value", 
+    x = "Year") +
+  guides(color = guide_legend(nrow = 4)) +
+  theme(
+    plot.title = element_text(size = 17, hjust = 0.5),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13)
+    )
+```
+
+### Two-panel plot showing adta value distribution in NY for the years 2006 and 2010
+```{r}
+brfss_clean %>%
+  filter(state == "NY", year %in% c(2006, 2010)) %>%
+  ggplot(aes(x = data_value, fill = response)) +
+  geom_density() +
+  facet_grid(. ~ year) + 
+  labs(title = " Response Level for Locations in 2006 and 2010 in NY State") +
+  theme(
+    plot.title = element_text(size = 17, hjust = 0.5),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13))
+```
+
+
+## Problem 3
+
+load the data
+```{r}
+accel = read_csv("./data/accel_data.csv") 
+```
+### Tidy the dataset
+```{r}
+accel_clean = accel %>%
+  janitor::clean_names() %>% 
+  mutate(day_type = ifelse(day %in% c("Saturday", "Sunday"), "weekend", "weekday")) %>% 
+  pivot_longer(
+    activity_1:activity_1440,
+    names_to = "minute",
+    names_prefix = "activity_",
+    values_to = "activity_counts"
+  ) %>% 
+  mutate(day = as.factor(day),
+         day = fct_relevel(day, "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" , "Saturday", "Sunday"),
+         day_type = as.factor(day_type),
+         minute = as.numeric(minute))
+
+  
+accel_clean
+```
+This dataset is has `r nrow(accel_clean)` observations,  `r ncol(accel_clean)` columns. It contains `r names(accel_clean)` variables.
+
+### Total Activity for Each Day
+```{r}
+total_activity_by_day = accel_clean %>% 
+  group_by(week, day) %>%
+  summarize(total_counts = sum(activity_counts)) %>% 
+  pivot_wider(
+    names_from = day,
+    values_from = total_counts
+  ) 
+
+total_activity_by_day %>% 
+  knitr::kable()
+```
+The table shows that the total activity increasing on weekdays, and it on weekend is lower than weekdays, but the trend is slight. Besides, in four and five week, total activity drops significantly on Saturdays.
+
+### Make a single-panel plot that shows the 24-hour activity time courses for each day
+```{r}
+accel_clean %>% 
+  ggplot(aes(x = minute, y = activity_counts, color = day, group = day_id)) +
+  geom_line() + 
+  labs(
+    title = "Activity Counts by Day",
+    x = "Minute",
+    y = "Activity Counts"
+  ) + 
+  scale_x_continuous(
+    breaks = c(0, 360, 720, 1080, 1440), 
+    labels = c("00:00.", "06:00", "12:00", "18:00", "23:59"),
+    limits = c(0, 1440)
+  ) +
+  theme(
+    plot.title = element_text(size = 17, hjust = 0.5),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13))
+ 
+```
+
+According to the plot, the most active periods of the individual are between 10:00 - 12:00 especially on Sunday and 19:00 - 21:00 especially on Friday, while the time period between 12:00 and 5:00 is the most inactive part. 
+
+
