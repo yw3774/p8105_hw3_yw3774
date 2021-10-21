@@ -22,12 +22,17 @@ scale_colour_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 ## Problem 1
-Load dataset instacart
+Load dataset instacart and write description
 ```{r}
 data("instacart")
 ```
 * description of instacart
-There are `r nrow(instacart)` observations and `r ncol(instacart)` variables in this dataset. Each row represents an order of the product and the variables are `r colnames(instacart)`. It has `r length(unique(instacart$department))` departments and `r length(unique(instacart$aisle))` aisles in total.
+There are `r nrow(instacart)` observations and `r ncol(instacart)` variables in this dataset, which is about purchase history on instacart. Each row represents an order of the product and the variables are `r colnames(instacart)`. It has `r length(unique(instacart$department))` departments and `r length(unique(instacart$aisle))` aisles in total.  
+For example, it forms like: 
+```{r, echo = FALSE}
+instacart %>% head(1) %>% knitr::kable()
+```
+The colnum `r names(instacart)[8]` denotes that the day of the week on which the order was placed, `r names(instacart)[9]` denotes that the hour of the day on which the order was placed, `r names(instacart)[11]` denotes the name of product being sold, and `r names(instacart)[14]` denotes that which aisle the product is from.
 
 ### Aisle that sold most items
 ```{r}
@@ -38,8 +43,6 @@ aisle_freq = instacart %>%
   )
 most_aisle = aisle_freq %>%
   slice_max(n_obs)
-most_aisle %>%
-knitr::kable()
 ```
 There are `r length(unique(instacart$aisle))` aisles and the most items are ordered from `r pull(most_aisle, aisle)`, which sold `r pull(most_aisle, n_obs)` products.
 
@@ -152,6 +155,7 @@ brfss_clean %>%
     axis.title.y = element_text(size = 13)
     )
 ```
+From the plot, we can see that the average data value of the survey participants whose answer were "excellent" about overall health for each state from 2002 to 2010. It shows that in 2005, there is a state that has the lowest mean data value, and the second lowest were from another state in the year of 2007. The highest mean-data-value was from the year of 2002.
 
 ### Two-panel plot showing adta value distribution in NY for the years 2006 and 2010
 ```{r}
@@ -166,6 +170,7 @@ brfss_clean %>%
     axis.title.x = element_text(size = 13),
     axis.title.y = element_text(size = 13))
 ```
+From the two-panel plot, we can see that the data value trend of responses are almost the same in the year of 2006 and 2010 in NY state as "Good" and "Vary good" have the largest data value in both years. The data value of response "poor" have the lowest value. The biggest difference between the year of 2006 and 2010 is that,in 2006, response "Good" has the largest value. But in 2010, response "Very good" has is the largest.
 
 
 ## Problem 3
@@ -221,8 +226,8 @@ accel_clean %>%
     y = "Activity Counts"
   ) + 
   scale_x_continuous(
-    breaks = c(0, 360, 720, 1080, 1440), 
-    labels = c("00:00.", "06:00", "12:00", "18:00", "23:59"),
+    breaks = c(0, 240, 480, 720, 960, 1200, 1440),
+    labels = c("0:00", "4:00", "8:00", "12:00", "16:00", "20:00", "24:00"),
     limits = c(0, 1440)
   ) +
   theme(
@@ -232,6 +237,6 @@ accel_clean %>%
  
 ```
 
-According to the plot, the most active periods of the individual are between 10:00 - 12:00 especially on Sunday and 19:00 - 21:00 especially on Friday, while the time period between 12:00 and 5:00 is the most inactive part. 
+According to the plot, the most active periods of the individual are between 10:00 - 12:00 especially on Sunday and 19:00 - 21:00 especially on Friday, while the time period between 12:00 and 4:00 is the most inactive part. 
 
 
